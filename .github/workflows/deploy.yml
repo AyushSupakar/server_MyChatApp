@@ -1,0 +1,36 @@
+name: Deploy Chat Backend
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npx prisma generate
+      - run: npm run build
+      - uses: aws-actions/setup-sam@v2
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - run: |
+          sam build
+          sam deploy --no-confirm-changeset --no-fail-on-empty-changeset \
+            --stack-name my-chat-app \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides \
+              DatabaseUrl='${{ secrets.DATABASE_URL }}' \
+              KafkaBroker='${{ secrets.KAFKA_BROKER }}' \
+              KafkaTopic='${{ secrets.KAFKA_TOPIC }}' \
+              KafkaCaCert='${{ secrets.KAFKA_CA_CERT }}' \
+              KafkaSecretArn='${{ secrets.KAFKA_SECRET_ARN }}' \
+              JwtSecret='${{ secrets.JWT_SECRET }}' \
+              RedisUrl='${{ secrets.REDIS_URL }}'

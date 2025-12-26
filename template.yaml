@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless Chat App - Managed Kafka Architecture
+
+Parameters:
+  DatabaseUrl:
+    Type: String
+  KafkaBroker:
+    Type: String
+  KafkaTopic:
+    Type: String
+  KafkaCaCert:
+    Type: String
+  KafkaSecretArn:
+    Type: String
+  JwtSecret:
+    Type: String
+  RedisUrl:
+    Type: String
+
+Resources:
+  ChatApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: dist/handler.httpHandler
+      Runtime: nodejs20.x
+      Timeout: 20
+      Environment:
+        Variables:
+          DATABASE_URL: !Ref DatabaseUrl
+          KAFKA_BROKER: !Ref KafkaBroker
+          KAFKA_CA_CERT: !Ref KafkaCaCert
+          KAFKA_USERNAME: "dummy"
+          JWT_SECRET: !Ref JwtSecret
+          REDIS_URL: !Ref RedisUrl
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+  KafkaConsumerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: dist/handler.kafkaHandler
+      Runtime: nodejs20.x
+      Events:
+        MyKafkaTrigger:
+          Type: SelfManagedKafka
+          Properties:
+            KafkaBootstrapServers:
+              - !Ref KafkaBroker
+            Topics:
+              - !Ref KafkaTopic
+            SourceAccessConfigurations:
+              - Type: SASL_SCRAM_256_AUTH
+                URI: !Ref KafkaSecretArn

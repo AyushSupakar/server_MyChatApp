@@ -11,7 +11,8 @@ const kafka = new Kafka({
   ssl: {
     rejectUnauthorized: true,
     // Ensure the certs folder exists in your dist/config/ directory after build
-    ca: [fs.readFileSync(path.resolve(__dirname, './certs/ca.pem'), 'utf-8')],
+    // ca: [fs.readFileSync(path.resolve(__dirname, './certs/ca.pem'), 'utf-8')],
+    ca: [process.env.KAFKA_CA_CERT || ""],  
   },
   sasl: {
     mechanism: "plain", // Or "scram-sha-256" based on your Aiven settings
