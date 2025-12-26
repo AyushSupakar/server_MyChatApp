@@ -1,4 +1,5 @@
 name: Deploy Chat Backend
+
 on:
   push:
     branches: [ main ]
@@ -7,25 +8,43 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
-      - run: npm install
-      - run: npx prisma generate
-      - run: npm run build
-      - uses: aws-actions/setup-sam@v2
-      - uses: aws-actions/configure-aws-credentials@v2
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run Build
+        run: npm run build
+
+      - name: Setup AWS SAM
+        uses: aws-actions/setup-sam@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - run: |
+      - name: SAM Build and Deploy
+        run: |
           sam build
-          sam deploy --no-confirm-changeset --no-fail-on-empty-changeset \
-            --stack-name my-chat-app \
+          sam deploy \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --resolve-s3 \
+            --stack-name my-chat-app-stack \
             --capabilities CAPABILITY_IAM \
+            --region ${{ secrets.AWS_REGION }} \
             --parameter-overrides \
               DatabaseUrl='${{ secrets.DATABASE_URL }}' \
               KafkaBroker='${{ secrets.KAFKA_BROKER }}' \
