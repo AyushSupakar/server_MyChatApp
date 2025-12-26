@@ -19,6 +19,7 @@ Parameters:
     Type: String
 
 Resources:
+  # 1. The Express API (Handles REST and Socket connections)
   ChatApiFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -26,6 +27,7 @@ Resources:
       Handler: dist/handler.httpHandler
       Runtime: nodejs20.x
       Timeout: 20
+      MemorySize: 512
       Environment:
         Variables:
           DATABASE_URL: !Ref DatabaseUrl
@@ -34,6 +36,7 @@ Resources:
           KAFKA_USERNAME: "dummy"
           JWT_SECRET: !Ref JwtSecret
           REDIS_URL: !Ref RedisUrl
+          NODE_ENV: production
       Events:
         ApiEvent:
           Type: Api
@@ -41,12 +44,14 @@ Resources:
             Path: /{proxy+}
             Method: ANY
 
+  # 2. The Kafka Consumer (Triggered by AWS Event Source Mapping)
   KafkaConsumerFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
       Handler: dist/handler.kafkaHandler
       Runtime: nodejs20.x
+      Timeout: 30
       Events:
         MyKafkaTrigger:
           Type: SelfManagedKafka
@@ -58,3 +63,8 @@ Resources:
             SourceAccessConfigurations:
               - Type: SASL_SCRAM_256_AUTH
                 URI: !Ref KafkaSecretArn
+
+Outputs:
+  WebEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
