@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.vscode
+.env*
+.env.local
+.env.development.local
+*.pem
+certs/
+dist/certs/
+dist/
+ca.pem
